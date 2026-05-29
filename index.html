@@ -325,11 +325,11 @@ const GLUTAMINE_MAINTENANCE = [
 ];
 
 function isLoadingPhase() {
-  const startDate = load('program_start', null);
-  if (!startDate) { save('program_start', todayKey()); return true; }
-  const start = new Date(startDate); start.setHours(0,0,0,0);
+  const history = load('workout_history', []);
+  if (!history.length) return false;
+  const firstDate = new Date(history[0].date); firstDate.setHours(0,0,0,0);
   const today = new Date(); today.setHours(0,0,0,0);
-  return Math.round((today - start) / 86400000) < 5;
+  return Math.round((today - firstDate) / 86400000) < 5;
 }
 
 function getSupplements(isTrainingDay) {
