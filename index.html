@@ -285,11 +285,11 @@ const WORKOUTS = {
 const SUPPLEMENTS_BASE = [
   // ── MORNING ──
   { id: 'creatine_am',  name: 'Creatine Monohydrate', time: 'Upon waking',                  dose: '3.5 g (measure 5–6 g powder)', group: 'morning',    icon: '💪' },
-  { id: 'cissus_am',   name: 'Cissus Quadrangularis', time: 'Morning (dose 1 of 3)',         dose: '2,400 mg',                     group: 'morning',    icon: '🌿' },
+  { id: 'cissus_am',   name: 'Cissus Quadrangularis', time: 'Before meal 1',                 dose: '2,400 mg',                     group: 'morning',    icon: '🌿' },
   { id: 'ala_meal1',   name: 'Alpha-Lipoic Acid',     time: '30 min before meal 1',          dose: '300 mg',                       group: 'morning',    icon: '⚡' },
   { id: 'egcg_meal1',  name: 'Green Tea (EGCG)',      time: '30 min before meal 1',          dose: '325 mg EGCG (decaf)',           group: 'morning',    icon: '🍵' },
   // ── MIDDAY ──
-  { id: 'cissus_mid',  name: 'Cissus Quadrangularis', time: 'Midday (dose 2 of 3)',          dose: '2,400 mg',                     group: 'midday',     icon: '🌿' },
+  { id: 'cissus_mid',  name: 'Cissus Quadrangularis', time: 'Before meal 2',                 dose: '2,400 mg',                     group: 'midday',     icon: '🌿' },
   { id: 'ala_meal2',   name: 'Alpha-Lipoic Acid',     time: '30 min before meal 2',          dose: '300 mg',                       group: 'midday',     icon: '⚡' },
   { id: 'egcg_meal2',  name: 'Green Tea (EGCG)',      time: '30 min before meal 2',          dose: '325 mg EGCG (decaf)',           group: 'midday',     icon: '🍵' },
   // ── PRE-WORKOUT ──
@@ -297,14 +297,14 @@ const SUPPLEMENTS_BASE = [
   // ── POST-WORKOUT ──
   { id: 'shake_post',  name: 'Protein Shake (Post)',  time: 'Immediately after training',    dose: '24 g whey + 24 g casein',      group: 'postworkout', icon: '🥤', trainingOnly: true },
   // ── EVENING ──
-  { id: 'cissus_pm',   name: 'Cissus Quadrangularis', time: 'Evening (dose 3 of 3)',         dose: '2,400 mg',                     group: 'evening',    icon: '🌿' },
+  { id: 'cissus_pm',   name: 'Cissus Quadrangularis', time: 'Before meal 3',                 dose: '2,400 mg',                     group: 'evening',    icon: '🌿' },
   { id: 'ala_meal3',   name: 'Alpha-Lipoic Acid',     time: '30 min before meal 3',          dose: '300 mg',                       group: 'evening',    icon: '⚡' },
   { id: 'egcg_meal3',  name: 'Green Tea (EGCG)',      time: '30 min before meal 3',          dose: '325 mg EGCG (decaf)',           group: 'evening',    icon: '🍵' },
   // ── BEFORE BED ──
   { id: 'creatine_bed', name: 'Creatine Monohydrate', time: 'Before bed',                   dose: '3.5 g (measure 5–6 g powder)', group: 'bed',        icon: '💪' },
-  { id: 'egcg_bed',    name: 'Green Tea (EGCG)',      time: 'Before bed',                    dose: '325 mg EGCG (decaf)',           group: 'bed',        icon: '🍵' },
   { id: 'policosanol', name: 'Policosanol',           time: 'Before bed',                    dose: '20–25 mg',                     group: 'bed',        icon: '🌾' },
-  { id: 'magnesium',   name: 'Magnesium',             time: 'Before bed',                    dose: '2 tablets',                    group: 'bed',        icon: '🪨' },
+  { id: 'ala_bed',     name: 'Alpha-Lipoic Acid',    time: 'Before bed',                    dose: '100–300 mg',                   group: 'bed',        icon: '⚡' },
+  { id: 'magnesium',   name: 'Magnesium',             time: 'Before bed (with food)',        dose: '2 tablets',                    group: 'bed',        icon: '🪨' },
 ];
 
 // Glutamine: loading phase (days 1–5) vs maintenance
@@ -560,13 +560,19 @@ function saveBaseHR() {
 
 function renderSuppList(isTrainingDay) {
   const d = todayData();
-  const groups = { morning: 'Morning', midday: 'Midday', preworkout: 'Pre-Workout', postworkout: 'Post-Workout', evening: 'Evening', bed: 'Before Bed' };
+  const groupOrder = ['preworkout', 'postworkout', 'morning', 'midday', 'evening', 'bed'];
+  const groups = { preworkout: 'Pre-Workout', postworkout: 'Post-Workout', morning: 'Morning', midday: 'Midday', evening: 'Evening', bed: 'Before Bed' };
   const loading = isLoadingPhase();
   let html = loading
     ? `<div style="background:#422006;color:#fbbf24;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:10px;">⚡ Glutamine Loading Phase (Days 1–5): 80 g today, 10 g every 2 hours</div>`
     : '';
   let currentGroup = '';
-  getSupplements(isTrainingDay).forEach(s => {
+  const supps = getSupplements(isTrainingDay);
+  supps.sort((a, b) => {
+    const ai = groupOrder.indexOf(a.group); const bi = groupOrder.indexOf(b.group);
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+  });
+  supps.forEach(s => {
     if (s.group !== currentGroup) {
       currentGroup = s.group;
       html += `<div class="timing-group-label">${groups[s.group] || s.group}</div>`;
