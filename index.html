@@ -185,33 +185,6 @@
       <div id="workout-content"></div>
     </div>
 
-    <!-- NUTRITION TAB -->
-    <div class="tab" id="tab-nutrition">
-      <div class="card">
-        <div class="card-title">Protein Goal: 150–200 g / day</div>
-        <div class="protein-goal-bar"><div class="protein-goal-fill" id="protein-bar" style="width:0%"></div></div>
-        <div class="protein-total">
-          <span class="protein-total-label">Today's protein</span>
-          <span class="protein-total-val"><span id="protein-total-val">0</span> g</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Log Meal</div>
-        <div class="meal-entry">
-          <input class="meal-desc" type="text" id="meal-desc" placeholder="Description (e.g. Whey shake + milk)" style="flex:1;">
-        </div>
-        <div class="meal-entry" style="margin-top:8px;">
-          <input class="meal-protein" type="number" id="meal-protein" placeholder="Protein (g)" inputmode="numeric" style="flex:1;">
-          <input type="number" id="meal-calories" placeholder="Kcal (opt.)" inputmode="numeric" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;">
-        </div>
-        <button class="btn btn-primary" onclick="logMeal()">Add Meal</button>
-      </div>
-      <div class="card">
-        <div class="card-title">Today's Meals</div>
-        <div id="meal-log-list"><div class="empty">No meals logged yet.</div></div>
-      </div>
-    </div>
-
     <!-- HISTORY TAB -->
     <div class="tab" id="tab-history">
       <div class="card">
@@ -249,10 +222,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
       Workout
     </button>
-    <button class="nav-btn" onclick="switchTab('nutrition')" id="nav-nutrition">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><line x1="2" y1="8" x2="18" y2="8"/><line x1="2" y1="16" x2="18" y2="16"/><path d="M6 8v8"/><path d="M10 8v8"/><path d="M14 8v8"/></svg>
-      Nutrition
-    </button>
     <button class="nav-btn" onclick="switchTab('history')" id="nav-history">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       History
@@ -274,16 +243,19 @@ const WORKOUTS = {
   A: {
     name: 'Workout A',
     exercises: [
-      { id: 'pulldown', name: 'Close-Grip Supinated Pull-Down', cadence: '5/5', targetReps: 7, note: 'Underhand grip, shoulder-width. No lock-out at bottom.' },
-      { id: 'shoulder_press', name: 'Machine Shoulder Press', cadence: '5/5', targetReps: 7, note: 'Controlled. Stop 2–3 cm before full extension.' }
+      { id: 'pulldown',      name: 'Close-Grip Supinated Pull-Down', cadence: '5/5', targetReps: 7,    note: 'Underhand grip, shoulder-width. No lock-out at bottom.' },
+      { id: 'shoulder_press',name: 'Machine Shoulder Press',         cadence: '5/5', targetReps: 7,    note: 'Controlled. Stop 2–3 cm before full extension.' },
+      { id: 'myotatic',      name: 'Myotatic Crunch',                cadence: '5/5', targetReps: 10,   note: 'Optional. Full range of motion on a BOSU ball or similar.', optional: true, bodyweight: true },
+      { id: 'cat_vomit',     name: 'Cat Vomit Exercise',             cadence: '—',   targetReps: 10,   note: 'Optional. Exhale fully, hold 8–10 sec per rep.', optional: true, bodyweight: true },
     ]
   },
   B: {
     name: 'Workout B',
     exercises: [
-      { id: 'incline_press', name: 'Slight Incline/Decline Bench Press', cadence: '5/5', targetReps: 7, note: 'Slight incline or decline. No bounce off chest.' },
-      { id: 'leg_press', name: 'Leg Press', cadence: '5/5', targetReps: 7, note: 'Feet shoulder-width. No full knee extension. Optional: Kettlebell or T-Bar Swings (see "Building the Perfect Posterior").' },
-      { id: 'bike', name: 'Stationary Bike', cadence: '—', targetReps: null, note: 'Easy pace. Active recovery, not cardio. ~5–10 min.' }
+      { id: 'incline_press', name: 'Slight Incline/Decline Bench Press', cadence: '5/5', targetReps: 7,    note: 'Slight incline or decline. No bounce off chest.' },
+      { id: 'leg_press',     name: 'Leg Press',                          cadence: '5/5', targetReps: 7,    note: 'Feet shoulder-width. No full knee extension.' },
+      { id: 'kettlebell',    name: 'Kettlebell Swings',                  cadence: '—',   targetReps: null, note: 'Optional. See "Building the Perfect Posterior". Log weight + reps.', optional: true, simple: false },
+      { id: 'bike',          name: 'Stationary Bike',                    cadence: '—',   targetReps: null, note: 'Active recovery, not cardio. ~5–10 min.', simple: true },
     ]
   }
 };
@@ -363,7 +335,6 @@ function switchTab(tab) {
   document.getElementById('nav-' + tab).classList.add('active');
   if (tab === 'today') renderToday();
   if (tab === 'workout') renderWorkout();
-  if (tab === 'nutrition') renderNutrition();
   if (tab === 'history') renderHistory();
 }
 
@@ -575,8 +546,8 @@ function renderWorkout() {
     html += `<div class="active-ex">
       <div class="active-ex-name">${ex.name}</div>
       <div class="active-ex-info">Cadence: ${ex.cadence}${ex.targetReps ? ' · Target: ' + ex.targetReps + ' reps' : ''}</div>`;
-    if (!ex.targetReps) {
-      // Simple done-check for bike/recovery exercises
+    if (ex.simple) {
+      // Simple done-check (bike)
       const done = sets.find(s=>s.type==='done');
       html += `<div style="font-size:13px;color:var(--text-dim);margin-bottom:10px;">${ex.note}</div>`;
       html += `<div style="display:flex;align-items:center;gap:10px;">
@@ -585,23 +556,25 @@ function renderWorkout() {
         </div>
         <span style="font-size:14px;">Mark as done</span>
       </div>`;
-    } else {
-      html += `<div class="warmup-label">Warm-up Sets</div>`;
-      const wu1 = sets.find(s=>s.type==='wu1');
-      html += renderSetRow(ex.id, 'wu1', '50%', wu1);
-      const wu2 = sets.find(s=>s.type==='wu2');
-      html += renderSetRow(ex.id, 'wu2', '75%', wu2);
-      html += `<div class="working-label" style="margin-top:10px;">Working Set (to failure)</div>`;
+    } else if (ex.bodyweight) {
+      // Bodyweight – reps only, no weight input
       const work = sets.find(s=>s.type==='work');
-      html += renderSetRow(ex.id, 'work', 'Max', work);
+      html += `<div class="working-label">Working Set</div>`;
+      html += renderSetRow(ex.id, 'work', '—', work, true);
+    } else {
+      // Standard weighted working set only
+      html += `<div class="working-label">Working Set (to failure)</div>`;
+      const work = sets.find(s=>s.type==='work');
+      html += renderSetRow(ex.id, 'work', '—', work, false);
     }
     html += `</div>`;
   });
 
   const allDone = wo.exercises.every(ex => {
+    if (ex.optional) return true;
     const sets = activeWorkout.sets[ex.id] || [];
-    if (!ex.targetReps) return sets.find(s=>s.type==='done');
-    return sets.find(s=>s.type==='wu1'&&s.done) && sets.find(s=>s.type==='wu2'&&s.done) && sets.find(s=>s.type==='work'&&s.done);
+    if (ex.simple) return sets.find(s=>s.type==='done');
+    return sets.find(s=>s.type==='work'&&s.done);
   });
 
   if (allDone) {
@@ -611,15 +584,15 @@ function renderWorkout() {
   cont.innerHTML = html;
 }
 
-function renderSetRow(exId, setType, pctLabel, set) {
+function renderSetRow(exId, setType, pctLabel, set, bodyweightOnly = false) {
   const done = set && set.done;
   const w = set ? set.weight : '';
   const r = set ? set.reps : '';
+  const weightInput = bodyweightOnly ? '' : `<input class="set-input" type="number" inputmode="decimal" placeholder="kg" value="${w}" id="w_${exId}_${setType}" style="max-width:90px;">`;
   return `<div class="set-row">
-    <span class="set-num">${pctLabel}</span>
-    <input class="set-input" type="number" inputmode="decimal" placeholder="kg" value="${w}" id="w_${exId}_${setType}" style="max-width:90px;">
-    <input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${r}" id="r_${exId}_${setType}" style="max-width:80px;">
-    <div class="complete-check ${done ? 'done' : ''}" onclick="completeSet('${exId}','${setType}')">
+    ${weightInput}
+    <input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${r}" id="r_${exId}_${setType}">
+    <div class="complete-check ${done ? 'done' : ''}" onclick="completeSet('${exId}','${setType}',${bodyweightOnly})">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
   </div>`;
@@ -631,18 +604,19 @@ function startWorkout(type) {
   renderWorkout();
 }
 
-function completeSet(exId, setType) {
+function completeSet(exId, setType, bodyweightOnly = false) {
   const wEl = document.getElementById(`w_${exId}_${setType}`);
   const rEl = document.getElementById(`r_${exId}_${setType}`);
-  const w = parseFloat(wEl?.value) || 0;
-  const r = parseInt(rEl?.value) || 0;
-  if (!w || !r) { wEl.style.borderColor = 'var(--danger)'; rEl.style.borderColor = 'var(--danger)'; return; }
+  const w = bodyweightOnly ? 0 : (parseFloat(wEl?.value) || 0);
+  const r = parseFloat(rEl?.value) || 0;
+  if (!bodyweightOnly && !w) { if(wEl) wEl.style.borderColor = 'var(--danger)'; return; }
+  if (!r) { if(rEl) rEl.style.borderColor = 'var(--danger)'; return; }
   if (!activeWorkout.sets[exId]) activeWorkout.sets[exId] = [];
   const existing = activeWorkout.sets[exId].findIndex(s => s.type === setType);
   const entry = { type: setType, weight: w, reps: r, done: true };
   if (existing >= 0) activeWorkout.sets[exId][existing] = entry;
   else activeWorkout.sets[exId].push(entry);
-  if (setType !== 'wu1') startTimer(180); // 3 min rest after wu2 and work
+  startTimer(180);
   renderWorkout();
 }
 
@@ -720,43 +694,6 @@ function stopTimer() {
   document.getElementById('rest-timer').classList.remove('visible');
 }
 
-// ─── NUTRITION ──────────────────────────────────────────────────────────────
-
-function renderNutrition() {
-  const d = todayData();
-  const meals = d.meals || [];
-  const total = meals.reduce((sum, m) => sum + (m.protein || 0), 0);
-  document.getElementById('protein-total-val').textContent = total;
-  const pct = Math.min(100, (total / 175) * 100);
-  document.getElementById('protein-bar').style.width = pct + '%';
-  const list = document.getElementById('meal-log-list');
-  if (!meals.length) { list.innerHTML = '<div class="empty">No meals logged yet.</div>'; return; }
-  list.innerHTML = meals.slice().reverse().map((m, i) => `
-    <div class="meal-log-item">
-      <div>
-        <div class="meal-log-desc">${m.desc}</div>
-        <div class="meal-log-time">${m.time}${m.kcal ? ' · ' + m.kcal + ' kcal' : ''}</div>
-      </div>
-      <div class="meal-log-protein">${m.protein || 0} g</div>
-    </div>`).join('');
-}
-
-function logMeal() {
-  const desc = document.getElementById('meal-desc').value.trim();
-  const protein = parseInt(document.getElementById('meal-protein').value) || 0;
-  const kcal = parseInt(document.getElementById('meal-calories').value) || 0;
-  if (!desc) return;
-  const d = todayData();
-  if (!d.meals) d.meals = [];
-  const now = new Date();
-  d.meals.push({ desc, protein, kcal: kcal || null, time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) });
-  saveTodayData(d);
-  document.getElementById('meal-desc').value = '';
-  document.getElementById('meal-protein').value = '';
-  document.getElementById('meal-calories').value = '';
-  renderNutrition();
-}
-
 // ─── HISTORY ────────────────────────────────────────────────────────────────
 
 function renderHistory() {
@@ -776,7 +713,10 @@ function renderHistory() {
   list.innerHTML = history.slice().reverse().map(w => {
     const sets = w.exercises.map(e => {
       const ws = e.sets?.find(s => s.type === 'work');
-      return ws ? `${e.name.split(' ').slice(0,2).join(' ')}: ${ws.weight}kg×${ws.reps}` : '';
+      if (!ws) return '';
+      const label = e.name.split(' ').slice(0,2).join(' ');
+      const val = ws.weight > 0 ? `${ws.weight}kg×${ws.reps}` : `${ws.reps} reps`;
+      return `${label}: ${val}`;
     }).filter(Boolean).join(' · ');
     return `<div class="history-entry">
       <div class="history-date">${new Date(w.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</div>
@@ -790,8 +730,48 @@ function resetToday() {
   if (confirm('Reset all of today\'s data? This cannot be undone.')) {
     localStorage.removeItem('day_' + todayKey());
     renderToday();
-    renderNutrition();
   }
+}
+
+// ─── SEED HISTORICAL DATA ───────────────────────────────────────────────────
+
+function seedHistoricalData() {
+  if (load('workout_history', []).length > 0) return; // don't overwrite existing data
+  const history = [
+    {
+      date: '2026-06-01', type: 'A',
+      exercises: [
+        { id: 'pulldown',       name: 'Close-Grip Supinated Pull-Down', sets: [{ type: 'work', weight: 55, reps: 8,   done: true }] },
+        { id: 'shoulder_press', name: 'Machine Shoulder Press',         sets: [{ type: 'work', weight: 35, reps: 8,   done: true }] },
+      ]
+    },
+    {
+      date: '2026-06-04', type: 'B',
+      exercises: [
+        { id: 'incline_press',  name: 'Slight Incline/Decline Bench Press', sets: [{ type: 'work', weight: 30, reps: 7.5, done: true }] },
+        { id: 'leg_press',      name: 'Leg Press',                          sets: [{ type: 'work', weight: 80, reps: 13,  done: true }] },
+        { id: 'kettlebell',     name: 'Kettlebell Swings',                  sets: [{ type: 'work', weight: 20, reps: 50,  done: true }] },
+      ]
+    },
+    {
+      date: '2026-06-07', type: 'A',
+      exercises: [
+        { id: 'pulldown',       name: 'Close-Grip Supinated Pull-Down', sets: [{ type: 'work', weight: 60,  reps: 8,   done: true }] },
+        { id: 'shoulder_press', name: 'Machine Shoulder Press',         sets: [{ type: 'work', weight: 39,  reps: 7,   done: true }] },
+        { id: 'myotatic',       name: 'Myotatic Crunch',                sets: [{ type: 'work', weight: 0,   reps: 8.5, done: true }] },
+        { id: 'cat_vomit',      name: 'Cat Vomit Exercise',             sets: [{ type: 'work', weight: 0,   reps: 6.5, done: true }] },
+      ]
+    },
+    {
+      date: '2026-06-10', type: 'B',
+      exercises: [
+        { id: 'incline_press',  name: 'Slight Incline/Decline Bench Press', sets: [{ type: 'work', weight: 35, reps: 7,  done: true }] },
+        { id: 'leg_press',      name: 'Leg Press',                          sets: [{ type: 'work', weight: 90, reps: 10, done: true }] },
+        { id: 'kettlebell',     name: 'Kettlebell Swings',                  sets: [{ type: 'work', weight: 20, reps: 65, done: true }] },
+      ]
+    },
+  ];
+  save('workout_history', history);
 }
 
 // ─── PWA MANIFEST ────────────────────────────────────────────────────────────
@@ -828,6 +808,7 @@ function setupServiceWorker() {
 updateHeader();
 setupManifest();
 setupServiceWorker();
+seedHistoricalData();
 renderToday();
 </script>
 </body>
