@@ -148,6 +148,18 @@
   .complete-check svg { width: 14px; height: 14px; color: #000; display: none; }
   .complete-check.done svg { display: block; }
 
+  /* FORECAST */
+  .forecast-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .forecast-row:last-child { border-bottom: none; }
+  .forecast-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .forecast-dot-next { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .forecast-dot-future { background: var(--border); }
+  .forecast-dot-done { background: var(--accent-dim); }
+  .forecast-type { font-size: 14px; font-weight: 700; width: 90px; }
+  .forecast-date { font-size: 13px; color: var(--text-dim); flex: 1; }
+  .forecast-rest { font-size: 11px; color: var(--text-dim); }
+  .forecast-today { color: var(--accent); font-weight: 700; }
+
   /* PULSE INPUT */
   .big-input { font-size: 48px; font-weight: 800; background: none; border: none; color: var(--text); text-align: center; width: 100%; padding: 8px; }
   .big-input:focus { outline: none; }
@@ -172,6 +184,14 @@
           <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">bpm on waking</div>
           <div id="hr-alert"></div>
           <button class="btn btn-primary" onclick="saveHR()">Save</button>
+        </div>
+      </div>
+      <div class="card" id="forecast-card">
+        <div class="card-title">Upcoming Schedule</div>
+        <div id="forecast-list"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:12px;color:var(--text-dim);">Stalling on 2+ exercises?</span>
+          <button class="btn btn-secondary" onclick="addRestDay()" style="padding:6px 14px;font-size:12px;">+ 1 Rest Day</button>
         </div>
       </div>
       <div class="card">
@@ -347,18 +367,48 @@ function updateHeader() {
 
 // ─── NEXT WORKOUT LOGIC ─────────────────────────────────────────────────────
 
+function getPhaseInterval(workoutCount) {
+  // Ferriss: start with 2 rest days (interval 3), after ~4 workouts bump to 3 rest days (interval 4)
+  // Additional rest days added manually if stalling on more than one exercise
+  const extraRest = load('extra_rest_days', 0);
+  const baseInterval = workoutCount <= 4 ? 3 : 4;
+  return baseInterval + extraRest;
+}
+
 function getNextWorkout() {
   const history = load('workout_history', []);
-  if (!history.length) return { type: 'A', ready: true, daysSince: null };
+  if (!history.length) return { type: 'A', ready: true, daysSince: null, interval: 3, phase: 1, nextDate: null };
   const last = history[history.length - 1];
   const nextType = last.type === 'A' ? 'B' : 'A';
-  const lastDate = new Date(last.date);
-  const today = new Date(); today.setHours(0,0,0,0); lastDate.setHours(0,0,0,0);
+  const lastDate = new Date(last.date); lastDate.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
   const daysSince = Math.round((today - lastDate) / 86400000);
-  // Recommended rest: phase based on number of workouts
-  const phase = history.length <= 4 ? 1 : history.length <= 10 ? 2 : 3;
-  const minRest = phase === 1 ? 4 : phase === 2 ? 5 : 7;
-  return { type: nextType, ready: daysSince >= minRest, daysSince, minRest, phase };
+  const phase = history.length <= 4 ? 1 : 2;
+  const interval = getPhaseInterval(history.length);
+  const nextDate = new Date(lastDate); nextDate.setDate(nextDate.getDate() + interval);
+  return { type: nextType, ready: daysSince >= interval, daysSince, interval, phase, nextDate };
+}
+
+function getForecast(count = 6) {
+  const history = load('workout_history', []);
+  const forecast = [];
+  let lastDate = history.length ? new Date(history[history.length - 1].date) : new Date();
+  lastDate.setHours(0,0,0,0);
+  let lastType = history.length ? history[history.length - 1].type : 'B';
+  let workoutCount = history.length;
+  const today = new Date(); today.setHours(0,0,0,0);
+  for (let i = 0; i < count; i++) {
+    const nextType = lastType === 'A' ? 'B' : 'A';
+    const interval = getPhaseInterval(workoutCount);
+    const nextDate = new Date(lastDate); nextDate.setDate(nextDate.getDate() + interval);
+    const isPast = nextDate < today;
+    const isToday = nextDate.getTime() === today.getTime();
+    forecast.push({ type: nextType, date: nextDate, interval, workoutNum: workoutCount + 1, isPast, isToday });
+    lastDate = nextDate;
+    lastType = nextType;
+    workoutCount++;
+  }
+  return forecast;
 }
 
 // ─── TODAY TAB ──────────────────────────────────────────────────────────────
@@ -399,17 +449,18 @@ function renderToday() {
       }).join('')}
       <button class="btn btn-primary" style="margin-top:12px;" onclick="switchTab('workout')">Start Workout →</button>`;
   } else {
-    const remain = nw.minRest - nw.daysSince;
+    const remain = nw.interval - nw.daysSince;
+    const nextDateStr = nw.nextDate ? nw.nextDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : '—';
     card.innerHTML = `
-      <div class="card-title">Next Workout</div>
+      <div class="card-title">Rest Day</div>
       <div class="workout-status">
         <div>
           <div class="workout-label">${WORKOUTS[nw.type].name}</div>
-          <div class="rest-days-indicator">${remain} more rest day${remain !== 1 ? 's' : ''} recommended</div>
+          <div class="rest-days-indicator">Next up on ${nextDateStr}</div>
         </div>
-        <span class="badge badge-yellow">Rest Day</span>
+        <span class="badge badge-yellow">${remain} day${remain !== 1 ? 's' : ''} to go</span>
       </div>
-      <div style="font-size:13px;color:var(--text-dim);">Phase ${nw.phase} rest: ${nw.minRest} days minimum. You are on day ${nw.daysSince}.</div>`;
+      <div style="font-size:13px;color:var(--text-dim);">Phase ${nw.phase}: ${nw.interval - 1} rest days between sessions (Ferriss protocol)</div>`;
   }
 
   // HR
@@ -421,7 +472,62 @@ function renderToday() {
   }
   if (baseHR) document.getElementById('hr-input').placeholder = `Base: ${baseHR}`;
 
+  renderForecast();
   renderSuppList(todayDone || nw.ready);
+}
+
+function renderForecast() {
+  const history = load('workout_history', []);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const nw = getNextWorkout();
+  let html = '';
+
+  // Show last 1 done workout + upcoming
+  if (history.length) {
+    const last = history[history.length - 1];
+    const lastDate = new Date(last.date);
+    html += `<div class="forecast-row">
+      <div class="forecast-dot forecast-dot-done"></div>
+      <div class="forecast-type" style="color:var(--text-dim);">${WORKOUTS[last.type].name}</div>
+      <div class="forecast-date">${lastDate.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</div>
+      <div class="forecast-rest">✓ done</div>
+    </div>`;
+  }
+
+  const forecast = getForecast(6);
+  forecast.forEach((f, i) => {
+    const dateStr = f.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const isNext = i === 0;
+    const restLabel = `${f.interval - 1} rest days`;
+    html += `<div class="forecast-row">
+      <div class="forecast-dot ${isNext ? 'forecast-dot-next' : 'forecast-dot-future'}"></div>
+      <div class="forecast-type ${isNext ? 'forecast-today' : ''}">${WORKOUTS[f.type].name}</div>
+      <div class="forecast-date ${isNext ? 'forecast-today' : ''}">${dateStr}</div>
+      <div class="forecast-rest">${restLabel}</div>
+    </div>`;
+  });
+
+  const extraRest = load('extra_rest_days', 0);
+  if (extraRest > 0) {
+    html += `<div style="margin-top:8px;font-size:12px;color:var(--warn);">+${extraRest} extra rest day${extraRest > 1 ? 's' : ''} active
+      <button onclick="removeRestDay()" style="background:none;border:none;color:var(--warn);font-size:12px;cursor:pointer;text-decoration:underline;margin-left:6px;">reset</button>
+    </div>`;
+  }
+
+  document.getElementById('forecast-list').innerHTML = html;
+}
+
+function addRestDay() {
+  const current = load('extra_rest_days', 0);
+  save('extra_rest_days', current + 1);
+  renderForecast();
+  renderToday();
+}
+
+function removeRestDay() {
+  save('extra_rest_days', 0);
+  renderForecast();
+  renderToday();
 }
 
 function renderHRAlert(hr, base) {
